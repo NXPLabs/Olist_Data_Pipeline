@@ -1,0 +1,590 @@
+bundle:
+  name: olist-data-pipeline
+
+variables:
+  catalog:
+    description: "Unity Catalog name"
+    default: olist_project
+  warehouse_id:
+    description: "SQL Warehouse ID for dbt tasks"
+    default: "956f28a1a104215e"
+  gold_schema:
+    description: "Gold layer schema name"
+    default: gold
+
+targets:
+  default:
+    mode: development
+    default: true
+
+resources:
+  jobs:
+    olist_pipeline_job: 
+      name: "[Bronze-Silver-Gold] Olist Pipeline" 
+      
+      environments:
+        - environment_key: "Default"
+          spec:
+            environment_version: "4"
+            dependencies:
+                - "dbt-core==1.8.0"
+                - "dbt-databricks==1.8.0"
+                - "python-dotenv"
+                - "pandera[pyspark]"
+
+      queue:
+        enabled: true
+
+      tasks:
+        # -----------------------------------------------
+        # --- run_bronze (9 TASKS) ---
+        # -----------------------------------------------
+        - task_key: run_bronze_order
+          description: "Nạp file 'order' từ Volume vào bảng bronze.order_raw"
+          notebook_task:
+            notebook_path: task/bronze/bronze.py
+            base_parameters:
+              source_dir_name: "order"
+              target_table_name: "order"
+              schema_base_path: "${workspace.file_path}/schema"
+          environment_key: "Default"
+
+        - task_key: run_bronze_customer
+          description: "Nạp file 'customer' vào bảng bronze.customer_raw"
+          notebook_task:
+            notebook_path: task/bronze/bronze.py
+            base_parameters:
+              source_dir_name: "customer"
+              target_table_name: "customer"
+              schema_base_path: "${workspace.file_path}/schema"
+          environment_key: "Default"
+
+        - task_key: run_bronze_order_item
+          description: "Nạp file 'order_item' vào bảng bronze.order_item_raw"
+          notebook_task:
+            notebook_path: task/bronze/bronze.py
+            base_parameters:
+              source_dir_name: "order_item"
+              target_table_name: "order_item"
+              schema_base_path: "${workspace.file_path}/schema"
+          environment_key: "Default"
+
+        - task_key: run_bronze_order_payment
+          description: "Nạp file 'order_payment' vào bảng bronze.order_payment_raw"
+          notebook_task:
+            notebook_path: task/bronze/bronze.py
+            base_parameters:
+              source_dir_name: "order_payment"
+              target_table_name: "order_payment"
+              schema_base_path: "${workspace.file_path}/schema"
+          environment_key: "Default"
+
+        - task_key: run_bronze_product
+          description: "Nạp file 'product' vào bảng bronze.product_raw"
+          notebook_task:
+            notebook_path: task/bronze/bronze.py
+            base_parameters:
+              source_dir_name: "product"
+              target_table_name: "product"
+              schema_base_path: "${workspace.file_path}/schema"
+          environment_key: "Default"
+
+        - task_key: run_bronze_seller
+          description: "Nạp file 'seller' vào bảng bronze.seller_raw"
+          notebook_task:
+            notebook_path: task/bronze/bronze.py
+            base_parameters:
+              source_dir_name: "seller"
+              target_table_name: "seller"
+              schema_base_path: "${workspace.file_path}/schema"
+          environment_key: "Default"
+
+        - task_key: run_bronze_geolocation
+          description: "Nạp file 'geolocation' vào bảng bronze.geolocation_raw (static data)"
+          notebook_task:
+            notebook_path: task/bronze/bronze_static.py
+            base_parameters:
+              source_dir_name: "static"
+              source_file_name: "geolocation.csv"
+              target_table_name: "geolocation"
+              schema_base_path: "${workspace.file_path}/schema"
+          environment_key: "Default"
+
+        - task_key: run_bronze_order_review
+          description: "Nạp file 'order_review' vào bảng bronze.order_review_raw"
+          notebook_task:
+            notebook_path: task/bronze/bronze.py
+            base_parameters:
+              source_dir_name: "order_review"
+              target_table_name: "order_review"
+              schema_base_path: "${workspace.file_path}/schema"
+          environment_key: "Default"
+
+        - task_key: run_bronze_product_translation
+          description: "Nạp file 'product_category_name_translation' (static data)"
+          notebook_task:
+            notebook_path: task/bronze/bronze_static.py
+            base_parameters:
+              source_dir_name: "static"
+              source_file_name: "product_category_name_translation.csv"
+              target_table_name: "product_category_translation"
+              schema_base_path: "${workspace.file_path}/schema"
+          environment_key: "Default"
+
+        # -----------------------------------------------
+        # --- test_bronze (9 TESTS) ---
+        # -----------------------------------------------
+        - task_key: test_bronze_order
+          description: "Test data quality cho bronze.order_raw"
+          depends_on:
+            - task_key: run_bronze_order
+          notebook_task:
+            notebook_path: test/bronze/test_bronze_order.py
+          environment_key: "Default"
+
+        - task_key: test_bronze_customer
+          description: "Test data quality cho bronze.customer_raw"
+          depends_on:
+            - task_key: run_bronze_customer
+          notebook_task:
+            notebook_path: test/bronze/test_bronze_customer.py
+          environment_key: "Default"
+
+        - task_key: test_bronze_order_item
+          description: "Test data quality cho bronze.order_item_raw"
+          depends_on:
+            - task_key: run_bronze_order_item
+          notebook_task:
+            notebook_path: test/bronze/test_bronze_order_item.py
+          environment_key: "Default"
+
+        - task_key: test_bronze_order_payment
+          description: "Test data quality cho bronze.order_payment_raw"
+          depends_on:
+            - task_key: run_bronze_order_payment
+          notebook_task:
+            notebook_path: test/bronze/test_bronze_order_payment.py
+          environment_key: "Default"
+
+        - task_key: test_bronze_product
+          description: "Test data quality cho bronze.product_raw"
+          depends_on:
+            - task_key: run_bronze_product
+          notebook_task:
+            notebook_path: test/bronze/test_bronze_product.py
+          environment_key: "Default"
+
+        - task_key: test_bronze_seller
+          description: "Test data quality cho bronze.seller_raw"
+          depends_on:
+            - task_key: run_bronze_seller
+          notebook_task:
+            notebook_path: test/bronze/test_bronze_seller.py
+          environment_key: "Default"
+
+        - task_key: test_bronze_geolocation
+          description: "Test data quality cho bronze.geolocation_raw"
+          depends_on:
+            - task_key: run_bronze_geolocation
+          notebook_task:
+            notebook_path: test/bronze/test_bronze_geolocation.py
+          environment_key: "Default"
+
+        - task_key: test_bronze_order_review
+          description: "Test data quality cho bronze.order_review_raw"
+          depends_on:
+            - task_key: run_bronze_order_review
+          notebook_task:
+            notebook_path: test/bronze/test_bronze_order_review.py
+          environment_key: "Default"
+
+        - task_key: test_bronze_product_translation
+          description: "Test data quality cho bronze.product_category_name_translation_raw"
+          depends_on:
+            - task_key: run_bronze_product_translation
+          notebook_task:
+            notebook_path: test/bronze/test_bronze_product_translation.py
+          environment_key: "Default"
+
+        # -----------------------------------------------
+        # --- run_silver (8 TASKS) ---
+        # -----------------------------------------------
+        - task_key: run_silver_geolocation
+          description: "Dọn dẹp (Dedupe) và GHI ĐÈ bảng Geolocation"
+          depends_on: 
+            - task_key: test_bronze_geolocation
+          notebook_task:
+            notebook_path: task/silver/silver_geolocation.py
+            base_parameters:
+              bronze_table_input: "geolocation_raw"
+              silver_table_output: "geolocation"
+          environment_key: "Default"
+          
+        - task_key: run_silver_customer
+          description: "Làm sạch, Làm giàu (JOIN Geo), và MERGE bảng Customer"
+          depends_on: 
+            - task_key: test_bronze_customer
+            - task_key: run_silver_geolocation
+          notebook_task:
+            notebook_path: task/silver/silver_customer.py
+            base_parameters:
+              bronze_table_input: "customer_raw"
+              silver_geo_table_input: "geolocation"
+              silver_table_output: "customer"
+          environment_key: "Default"
+
+        - task_key: run_silver_product
+          description: "Làm sạch, Dịch, và MERGE bảng Product"
+          depends_on: 
+            - task_key: test_bronze_product
+            - task_key: test_bronze_product_translation
+          notebook_task:
+            notebook_path: task/silver/silver_product.py
+            base_parameters:
+              bronze_product_table_input: "product_raw"
+              bronze_translation_table_input: "product_category_name_translation_raw"
+              silver_product_table_output: "product"
+          environment_key: "Default"
+
+        - task_key: run_silver_seller
+          description: "Làm sạch và MERGE bảng Seller"
+          depends_on: 
+            - task_key: test_bronze_seller
+          notebook_task:
+            notebook_path: task/silver/silver_seller.py
+            base_parameters:
+              bronze_table_input: "seller_raw"
+              silver_table_output: "seller"
+          environment_key: "Default"
+
+        - task_key: run_silver_order
+          description: "Làm sạch và MERGE bảng Order (cập nhật status)"
+          depends_on: 
+            - task_key: test_bronze_order
+          notebook_task:
+            notebook_path: task/silver/silver_order.py
+            base_parameters:
+              bronze_table_input: "order_raw"
+              silver_table_output: "order"
+          environment_key: "Default"
+
+        - task_key: run_silver_order_item
+          description: "Làm sạch và MERGE bảng Order Item"
+          depends_on: 
+            - task_key: test_bronze_order_item
+          notebook_task:
+            notebook_path: task/silver/silver_order_item.py
+            base_parameters:
+              bronze_table_input: "order_item_raw"
+              silver_table_output: "order_item"
+          environment_key: "Default"
+
+        - task_key: run_silver_order_payment
+          description: "Làm sạch và MERGE bảng Order Payment"
+          depends_on: 
+            - task_key: test_bronze_order_payment
+          notebook_task:
+            notebook_path: task/silver/silver_order_payment.py
+            base_parameters:
+              bronze_table_input: "order_payment_raw"
+              silver_table_output: "order_payment"
+          environment_key: "Default"
+
+        - task_key: run_silver_order_review
+          description: "Làm sạch và MERGE bảng Order Review"
+          depends_on: 
+            - task_key: test_bronze_order_review
+          notebook_task:
+            notebook_path: task/silver/silver_order_review.py
+            base_parameters:
+              bronze_table_input: "order_review_raw"
+              silver_table_output: "order_review"
+          environment_key: "Default"
+
+        # -----------------------------------------------
+        # --- test_silver (8 TESTS) ---
+        # -----------------------------------------------
+        - task_key: test_silver_geolocation
+          description: "Test data quality cho silver.geolocation"
+          depends_on:
+            - task_key: run_silver_geolocation
+          notebook_task:
+            notebook_path: test/silver/test_silver_geolocation.py
+          environment_key: "Default"
+
+        - task_key: test_silver_customer
+          description: "Test data quality cho silver.customer"
+          depends_on:
+            - task_key: run_silver_customer
+          notebook_task:
+            notebook_path: test/silver/test_silver_customer.py
+          environment_key: "Default"
+
+        - task_key: test_silver_product
+          description: "Test data quality cho silver.product"
+          depends_on:
+            - task_key: run_silver_product
+          notebook_task:
+            notebook_path: test/silver/test_silver_product.py
+          environment_key: "Default"
+
+        - task_key: test_silver_seller
+          description: "Test data quality cho silver.seller"
+          depends_on:
+            - task_key: run_silver_seller
+          notebook_task:
+            notebook_path: test/silver/test_silver_seller.py
+          environment_key: "Default"
+
+        - task_key: test_silver_order
+          description: "Test data quality cho silver.order"
+          depends_on:
+            - task_key: run_silver_order
+          notebook_task:
+            notebook_path: test/silver/test_silver_order.py
+          environment_key: "Default"
+
+        - task_key: test_silver_order_item
+          description: "Test data quality cho silver.order_item"
+          depends_on:
+            - task_key: run_silver_order_item
+          notebook_task:
+            notebook_path: test/silver/test_silver_order_item.py
+          environment_key: "Default"
+
+        - task_key: test_silver_order_payment
+          description: "Test data quality cho silver.order_payment"
+          depends_on:
+            - task_key: run_silver_order_payment
+          notebook_task:
+            notebook_path: test/silver/test_silver_order_payment.py
+          environment_key: "Default"
+
+        - task_key: test_silver_order_review
+          description: "Test data quality cho silver.order_review"
+          depends_on:
+            - task_key: run_silver_order_review
+          notebook_task:
+            notebook_path: test/silver/test_silver_order_review.py
+          environment_key: "Default"
+
+        # -----------------------------------------------
+        # --- run_gold_dim (4 TASKS) ---
+        # -----------------------------------------------
+        - task_key: run_gold_dim_customer
+          description: "Chạy snapshot + dbt model dim_customer (SCD Type 2)"
+          depends_on:
+            - task_key: test_silver_customer
+            - task_key: test_silver_geolocation
+          dbt_task:
+            catalog: ${var.catalog}
+            schema: ${var.gold_schema}
+            warehouse_id: ${var.warehouse_id}
+            commands:
+              - "dbt deps"
+              - "dbt snapshot --select snapshot_customer"
+              - "dbt run --select dim_customer"
+            project_directory: "dbt_gold"
+          environment_key: "Default"
+
+        - task_key: run_gold_dim_product
+          description: "Chạy snapshot + dbt model dim_product (SCD Type 2)"
+          depends_on:
+            - task_key: test_silver_product
+          dbt_task:
+            catalog: ${var.catalog}
+            schema: ${var.gold_schema}
+            warehouse_id: ${var.warehouse_id}
+            commands:
+              - "dbt deps"
+              - "dbt snapshot --select snapshot_product"
+              - "dbt run --select dim_product"
+            project_directory: "dbt_gold"
+          environment_key: "Default"
+
+        - task_key: run_gold_dim_seller
+          description: "Chạy snapshot + dbt model dim_seller (SCD Type 2)"
+          depends_on:
+            - task_key: test_silver_seller
+            - task_key: test_silver_geolocation
+          dbt_task:
+            catalog: ${var.catalog}
+            schema: ${var.gold_schema}
+            warehouse_id: ${var.warehouse_id}
+            commands:
+              - "dbt deps"
+              - "dbt snapshot --select snapshot_seller"
+              - "dbt run --select dim_seller"
+            project_directory: "dbt_gold"
+          environment_key: "Default"
+
+        # dim_order - SCD Type 2 with snapshot_order + incremental dim_order
+        - task_key: run_gold_dim_order
+          description: "Chạy snapshot_order + dbt model dim_order (SCD Type 2)"
+          depends_on:
+            - task_key: test_silver_order
+            - task_key: test_silver_customer
+          dbt_task:
+            catalog: ${var.catalog}
+            schema: ${var.gold_schema}
+            warehouse_id: ${var.warehouse_id}
+            commands:
+              - "dbt deps"
+              - "dbt snapshot --select snapshot_order"
+              - "dbt run --select dim_order"
+            project_directory: "dbt_gold"
+          environment_key: "Default"
+
+        # -----------------------------------------------
+        # --- test_gold_dim (4 TESTS) ---
+        # -----------------------------------------------
+        - task_key: test_gold_dim_customer
+          description: "Test dbt model dim_customer"
+          depends_on:
+            - task_key: run_gold_dim_customer
+          dbt_task:
+            catalog: ${var.catalog}
+            schema: ${var.gold_schema}
+            warehouse_id: ${var.warehouse_id}
+            commands:
+              - "dbt deps"
+              - "dbt test --select dim_customer --exclude \"relationships_*\""
+            project_directory: "dbt_gold"
+          environment_key: "Default"
+
+        - task_key: test_gold_dim_product
+          description: "Test dbt model dim_product"
+          depends_on:
+            - task_key: run_gold_dim_product
+          dbt_task:
+            catalog: ${var.catalog}
+            schema: ${var.gold_schema}
+            warehouse_id: ${var.warehouse_id}
+            commands:
+              - "dbt deps"
+              - "dbt test --select dim_product --exclude \"relationships_*\""
+            project_directory: "dbt_gold"
+          environment_key: "Default"
+
+        - task_key: test_gold_dim_seller
+          description: "Test dbt model dim_seller"
+          depends_on:
+            - task_key: run_gold_dim_seller
+          dbt_task:
+            catalog: ${var.catalog}
+            schema: ${var.gold_schema}
+            warehouse_id: ${var.warehouse_id}
+            commands:
+              - "dbt deps"
+              - "dbt test --select dim_seller --exclude \"relationships_*\""
+            project_directory: "dbt_gold"
+          environment_key: "Default"
+
+        - task_key: test_gold_dim_order
+          description: "Test dbt model dim_order"
+          depends_on:
+            - task_key: run_gold_dim_order
+          dbt_task:
+            catalog: ${var.catalog}
+            schema: ${var.gold_schema}
+            warehouse_id: ${var.warehouse_id}
+            commands:
+              - "dbt deps"
+              - "dbt test --select dim_order"
+            project_directory: "dbt_gold"
+          environment_key: "Default"
+
+        # -----------------------------------------------
+        # --- run_gold_fct (3 TASKS) ---
+        # Fact tables depend on test_gold_dim_order (via ref() in dbt)
+        # This ensures dim_order is built and tested before fact tables
+        # -----------------------------------------------
+        - task_key: run_gold_fct_order_item
+          description: "Chạy dbt model fct_order_item"
+          depends_on:
+            - task_key: test_silver_order_item
+            - task_key: test_silver_order  # Single Source of Truth: depend on Silver only
+          dbt_task:
+            catalog: ${var.catalog}
+            schema: ${var.gold_schema}
+            warehouse_id: ${var.warehouse_id}
+            commands:
+              - "dbt deps"
+              - "dbt run --select fct_order_item"
+            project_directory: "dbt_gold"
+          environment_key: "Default"
+
+        - task_key: run_gold_fct_order_payment
+          description: "Chạy dbt model fct_order_payment"
+          depends_on:
+            - task_key: test_silver_order_payment
+            - task_key: test_silver_order  # Single Source of Truth: depend on Silver only
+          dbt_task:
+            catalog: ${var.catalog}
+            schema: ${var.gold_schema}
+            warehouse_id: ${var.warehouse_id}
+            commands:
+              - "dbt deps"
+              - "dbt run --select fct_order_payment"
+            project_directory: "dbt_gold"
+          environment_key: "Default"
+
+        - task_key: run_gold_fct_order_review
+          description: "Chạy dbt model fct_order_review"
+          depends_on:
+            - task_key: test_silver_order_review
+            - task_key: test_silver_order  # Single Source of Truth: depend on Silver only
+          dbt_task:
+            catalog: ${var.catalog}
+            schema: ${var.gold_schema}
+            warehouse_id: ${var.warehouse_id}
+            commands:
+              - "dbt deps"
+              - "dbt run --select fct_order_review"
+            project_directory: "dbt_gold"
+          environment_key: "Default"
+
+        # -----------------------------------------------
+        # --- test_gold_fct (3 TESTS) ---
+        # -----------------------------------------------
+        - task_key: test_gold_fct_order_item
+          description: "Test dbt model fct_order_item"
+          depends_on:
+            - task_key: run_gold_fct_order_item
+          dbt_task:
+            catalog: ${var.catalog}
+            schema: ${var.gold_schema}
+            warehouse_id: ${var.warehouse_id}
+            commands:
+              - "dbt deps"
+              - "dbt test --select fct_order_item"
+            project_directory: "dbt_gold"
+          environment_key: "Default"
+
+        - task_key: test_gold_fct_order_payment
+          description: "Test dbt model fct_order_payment"
+          depends_on:
+            - task_key: run_gold_fct_order_payment
+          dbt_task:
+            catalog: ${var.catalog}
+            schema: ${var.gold_schema}
+            warehouse_id: ${var.warehouse_id}
+            commands:
+              - "dbt deps"
+              - "dbt test --select fct_order_payment"
+            project_directory: "dbt_gold"
+          environment_key: "Default"
+
+        - task_key: test_gold_fct_order_review
+          description: "Test dbt model fct_order_review"
+          depends_on:
+            - task_key: run_gold_fct_order_review
+          dbt_task:
+            catalog: ${var.catalog}
+            schema: ${var.gold_schema}
+            warehouse_id: ${var.warehouse_id}
+            commands:
+              - "dbt deps"
+              - "dbt test --select fct_order_review"
+            project_directory: "dbt_gold"
+          environment_key: "Default"
