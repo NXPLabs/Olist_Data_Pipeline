@@ -17,7 +17,6 @@ flowchart LR
     ST --> FF[Gold fact tables]
     DG --> GT[Gold dbt tests]
     FF --> GT
-    GT --> NB[RFM + K-Means analysis]
 ```
 
 ### Medallion layers
