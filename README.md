@@ -131,7 +131,6 @@ erDiagram
 Olist_Data_Pipeline/
 ├── databricks.yml          # Asset Bundle and pipeline orchestration
 ├── data/                   # Source CSV files
-├── notebook/               # Customer segmentation notebook
 ├── schema/                 # Bronze/Silver schema registry and YAML definitions
 ├── script/
 │   ├── setup.sql           # Catalog, schemas, volume, and grants setup
@@ -218,18 +217,6 @@ dbt snapshot --select snapshot_customer
 dbt run --select dim_customer
 dbt test --select dim_customer
 ```
-
-## Customer segmentation
-
-`notebook/customer_segmentation.ipynb` connects to Databricks through the SQL connector, reads delivered orders and payment values from the Gold tables, and performs:
-
-- RFM feature calculation
-- Feature scaling
-- K-Means clustering
-- Silhouette analysis
-- Cluster visualization and segment interpretation
-
-Configure the Databricks host and personal access token in `~/.databrickscfg` before running the notebook.
 
 ## Testing
 
